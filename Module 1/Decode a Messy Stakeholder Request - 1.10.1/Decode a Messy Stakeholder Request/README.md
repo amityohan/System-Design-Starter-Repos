@@ -37,3 +37,7 @@ npm test               # run the tests (they will fail until you fix index.js an
 ```
 
 Read `requirements-request.md` before touching any code — that message is the source of truth for which routes belong and which don't.
+
+## Approach
+
+I kept requirements tied to the core fleet-monitoring and dispatch workflows, and treated unrelated features as creep; unresolved platform, integration, and service-level details remain explicit rather than assumed. The API retains the five core routes, while tests confirm those respond successfully and the four removed feature routes return 404.
