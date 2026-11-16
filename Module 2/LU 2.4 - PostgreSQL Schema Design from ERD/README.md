@@ -106,15 +106,15 @@ The 36 pgTAP tests verify:
 
 ---
 
-## The File to Fix
+## Files to Update
 
-**Only edit this file:**
+Fix the schema in:
 
 ```
 migrations/001_initial_schema.sql
 ```
 
-Every broken line has a `-- wrong:` comment explaining what the problem is. Read each comment carefully.
+Every broken line has a comment explaining the problem. Also add the requested decisions and rejected shape to this README.
 
 ---
 
@@ -204,33 +204,7 @@ git add migrations/001_initial_schema.sql README.md
 git commit -m "fix: repair helpdesk schema to match ERD"
 ```
 
-2. Update `README.md` (this file) with exactly **3 ERD-to-schema decisions** and **1 rejected table shape** using this format:
-
-```markdown
-## ERD-to-Schema Decisions
-
-### Decision 1: [Column type decision]
-ERD said: ...
-Schema decided: ...
-Reason: ...
-
-### Decision 2: [ON DELETE decision]
-ERD said: ...
-Schema decided: ...
-Reason: ...
-
-### Decision 3: [Default value decision]
-ERD said: ...
-Schema decided: ...
-Reason: ...
-
-## Rejected Table Shape
-
-### Shape: [name what you removed or rejected]
-What it was: ...
-Why rejected: ...
-What would break: ...
-```
+2. The completed decisions and rejected shape are documented at the end of this README.
 
 3. Push and open a PR:
 ```bash
@@ -257,9 +231,33 @@ git push origin schema-repair
 ```
 helpdesk-schema-repair/
 ├── migrations/
-│   └── 001_initial_schema.sql   ← the broken schema — only file you edit
+│   └── 001_initial_schema.sql   ← the schema to repair
 ├── tests/
 │   └── schema.test.sql          ← 36 pgTAP tests — do not edit
 ├── README.md                    ← this file — update with your decisions
 └── package.json                 ← npm scripts — do not edit
 ```
+
+## ERD-to-Schema Decisions
+
+### Decision 1: Timestamp column type
+ERD said: `created_at` is a timestamp.
+Schema decided: Use `TIMESTAMPTZ` for timestamp columns.
+Reason: It records an unambiguous point in time for users and services in different time zones.
+
+### Decision 2: Optional ticket assignee deletion
+ERD said: A ticket may have an optional assigned agent; delete behavior is not specified.
+Schema decided: `tickets.assignee_id` references `agents(id)` with `ON DELETE SET NULL`.
+Reason: The ticket remains available for its history, but becomes unassigned if its current agent is deleted.
+
+### Decision 3: Initial ticket status
+ERD said: Tickets can be `open`, `pending`, `resolved`, or `closed`; no initial status is specified.
+Schema decided: `tickets.status` is `NOT NULL` with `DEFAULT 'open'`.
+Reason: New tickets begin in a valid workflow state even when an insert does not provide a status.
+
+## Rejected Table Shape
+
+### Shape: Tags array on tickets
+What it was: A `tags TEXT[]` column storing a ticket's tag names directly.
+Why rejected: Tags are their own ERD entity and can be shared across many tickets, so a separate `tags` table and `ticket_tags` relationship table represent the many-to-many relationship.
+What would break: Names could be inconsistent or duplicated, and the database could not enforce that each array value refers to a real tag or preserve tag ownership and metadata.
